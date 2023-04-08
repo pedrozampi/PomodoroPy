@@ -3,7 +3,6 @@ import asyncio as asy # Permite o cronomêtro dos intervalos.
 import pygame # Integração de som aos intervalos
 
 
-
 pygame.mixer.init() #Inicia o módulo mixer da Biblioteca PyGame
 
 somInicio = pygame.mixer.Sound('sounds/start.mp3') # Som de inicio do pomodoro.
@@ -11,21 +10,62 @@ somCurto = pygame.mixer.Sound('sounds/pauses.mp3') # Som da pausa curta.
 somLongo = pygame.mixer.Sound('sounds/pausel.mp3') # Som da pausa longa.
 
 somInicio.set_volume(0.1) # Deixa o volume do som em 10%
+somCurto.set_volume(0.2) # Deixa o volume do som em 20%
 somLongo.set_volume(0.2) # Deixa o volume do som em 20%
 
 
-
-tfinal = 0 # Contar o tempo estudado
+def carregar():
+    r = open('config.json') # Abre a configuração
+    global config
+    config =  json.load(r) # Armazena os dados no dicionario config
 
 
 
 async def timer(t): # A função Assíncrona do cronometro 
     await asy.sleep(t*60)   # O cronometro com o tempo em minutos multiplicadado para segundos
 
+def tempototal(t):
+    carregar()
+    tempot = int(config["tempo_total"])
+    ntestudo = int(config["tempo_estudo"])
+    npcurta = int(config["pausa_curta"])
+    nplonga = int(config["pausa_longa"])
+    nciclos = int(config["tempo_total"])
+    ntempo = { # Dicionario com as novas configurações
+        "tempo_estudo" : ntestudo, 
+        "pausa_curta" : npcurta,
+        "pausa_longa" : nplonga,
+        "ciclos": nciclos,
+        "tempo_total" : tempot+t 
+    }
+    config_obj = json.dumps(ntempo, indent=4) # Gera o objeto com o json e sua identação
+    with open("config.json", "w") as outfile: # Abre o arquivo para ser escrito
+        outfile.write(config_obj)
+
+def limpart():
+    carregar()
+    ntestudo = int(config["tempo_estudo"])
+    npcurta = int(config["pausa_curta"])
+    nplonga = int(config["pausa_longa"])
+    nciclos = int(config["tempo_total"])
+    ntempo = { # Dicionario com as novas configurações
+        "tempo_estudo" : ntestudo, 
+        "pausa_curta" : npcurta,
+        "pausa_longa" : nplonga,
+        "ciclos": nciclos,
+        "tempo_total" : 0 
+    }
+    config_obj = json.dumps(ntempo, indent=4) # Gera o objeto com o json e sua identação
+    with open("config.json", "w") as outfile: # Abre o arquivo para ser escrito
+        outfile.write(config_obj)
+    print("Tempo zerado.\n")
+
+
+tfinal = 1 # Contar o tempo estudado
 
 def pomodoro(): # Função do pomodoro
-    r = open('config.json') # Abre a configuração
-    config =  json.load(r) # Armazena os dados no dicionario config
+    carregar()
+    global tfinal
     t_estudo = int(config["tempo_estudo"]) # Armazena o tempo de estudo da configuração
     pcurta = int(config["pausa_curta"]) # Armazena o tempo da pausa curta da configuração
     plonga = int(config["pausa_longa"]) # Armazena o tempo de pausa longa da configuração
@@ -46,6 +86,7 @@ def pomodoro(): # Função do pomodoro
         print("Pausa longa! Descanse um pouco.\n") # Imprime que a pausa longa iniciou
         somLongo.play() # Toca o som de pausa longa
     print("Parabéns você estudou: ",tfinal," Minutos") # Imprime o tempo estudado
+    tempototal(tfinal)
 
     
 def entrada(): # Funçao para alterar as configurações
@@ -64,8 +105,9 @@ def entrada(): # Funçao para alterar as configurações
         outfile.write(config_obj) # Escreve no arquivo
     pomodoro() # Inicia o pomodoro com as novas configurações
 
-
-print("Deseja usar o tempo padrão ou personalizar?\n1 - Padrão\t 2 - Personalizar \t3 - para encerrar") # Menu das opções
+carregar()
+print("Você já estudou ",config["tempo_total"],"minutos no total\n")
+print("Deseja usar o tempo padrão ou personalizar?\n1 - Padrão\t2 - Personalizar \t3 - Zerar tempo total\t4 - para encerrar") # Menu das opções
 op = int(input("Opção: ")) # Lê a opção desejada
 
 
@@ -74,5 +116,7 @@ match op: # Match/Switch que alterna entre as opção escolhida
         pomodoro() # Inicia o pomodoro
     case 2: # caso digitado 2
         entrada() # Inicia a requisição da nova configuração e posteriormente o pomodoro atualizado
+    case 3:
+        limpart()
     case _: # caso outro numero
         exit() # encerra
